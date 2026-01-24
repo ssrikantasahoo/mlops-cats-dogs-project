@@ -1,0 +1,167 @@
+# Kubernetes Deployment for Cats vs Dogs Classification API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cats-dogs-classifier
+  labels:
+    app: cats-dogs-classifier
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cats-dogs-classifier
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: cats-dogs-classifier
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: cats-dogs-classifier
+          image: ghcr.io/your-username/cats-dogs-classifier:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: MODEL_PATH
+              value: "/app/models/model.pt"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: model-storage
+              mountPath: /app/models
+              readOnly: true
+            - name: logs-volume
+              mountPath: /app/logs
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: model-pvc
+        - name: logs-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - cats-dogs-classifier
+                topologyKey: kubernetes.io/hostname
+
+---
+# Service to expose the deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: cats-dogs-classifier-service
+  labels:
+    app: cats-dogs-classifier
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: cats-dogs-classifier
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cats-dogs-classifier-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - host: cats-dogs.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cats-dogs-classifier-service
+                port:
+                  number: 80
+
+---
+# PersistentVolumeClaim for model storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-pvc
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cats-dogs-classifier-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cats-dogs-classifier
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
