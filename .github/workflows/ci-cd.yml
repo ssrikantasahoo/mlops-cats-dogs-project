@@ -97,13 +97,8 @@ jobs:
 
       - name: Create dummy model for build
         run: |
-          python - <<'PY'
-          import os
-          import torch
-          from src.models.cnn_model import create_model
-          os.makedirs("models", exist_ok=True)
-          torch.save(create_model("cnn").state_dict(), "models/model.pt")
-          PY
+          mkdir -p models
+          touch models/model.pt
 
       - name: Set image reference output
         id: refs
@@ -166,13 +161,8 @@ jobs:
 
       - name: Create dummy model
         run: |
-          python - <<'PY'
-          import os
-          import torch
-          from src.models.cnn_model import create_model
-          os.makedirs("models", exist_ok=True)
-          torch.save(create_model("cnn").state_dict(), "models/model.pt")
-          PY
+          mkdir -p models
+          touch models/model.pt
 
       - name: Start services with Docker Compose
         run: |

@@ -137,12 +137,19 @@ def load_model(model_path: str = None) -> bool:
         model_file = Path(model_path)
 
         if model_file.exists():
-            state_dict = torch.load(model_file, map_location=device)
-            if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
-                model.load_state_dict(state_dict['model_state_dict'])
-            else:
-                model.load_state_dict(state_dict)
-            logger.info("model_loaded", path=str(model_file))
+            try:
+                state_dict = torch.load(model_file, map_location=device)
+                if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
+                    model.load_state_dict(state_dict['model_state_dict'])
+                else:
+                    model.load_state_dict(state_dict)
+                logger.info("model_loaded", path=str(model_file))
+            except Exception as load_err:
+                logger.warning(
+                    "model_file_invalid_using_random_weights",
+                    path=str(model_file),
+                    error=str(load_err)
+                )
         else:
             logger.warning("model_file_not_found", path=str(model_file))
             logger.info("using_random_weights_for_demo")
