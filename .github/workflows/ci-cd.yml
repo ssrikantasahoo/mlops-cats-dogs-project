@@ -17,7 +17,7 @@ permissions:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: ssrikantasahoo0907/mlops-cats-dogs-project
-  IMAGE_REF: docker.io/ssrikantasahoo0907/mlops-cats-dogs-project:${{ github.sha }}
+  IMAGE_REF: ssrikantasahoo0907/mlops-cats-dogs-project:${{ github.sha }}
 
 jobs:
   # ============================================
@@ -88,7 +88,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -112,6 +112,9 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -134,7 +137,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
         continue-on-error: true
