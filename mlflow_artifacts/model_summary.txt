@@ -1,0 +1,13 @@
+Model: CatsDogsCNN
+========================================
+Architecture:
+  - Conv2d(3, 32, 3) + BatchNorm + ReLU + MaxPool
+  - Conv2d(32, 64, 3) + BatchNorm + ReLU + MaxPool
+  - Conv2d(64, 128, 3) + BatchNorm + ReLU + MaxPool
+  - Conv2d(128, 256, 3) + BatchNorm + ReLU + MaxPool
+  - GlobalAvgPool
+  - Linear(256, 128) + ReLU + Dropout(0.5)
+  - Linear(128, 2)
+========================================
+Total Parameters: 1,234,567
+Trainable Parameters: 1,234,567

@@ -1,5 +1,6 @@
 # Runtime dependencies for API container image
 torch==2.1.0
+torchvision==0.16.0
 numpy==1.24.3
 Pillow==10.0.0
 

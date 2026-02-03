@@ -20,6 +20,19 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.prod.txt
 
+# Stage: Training (Full dependencies)
+FROM python:3.10-slim AS training
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+# Set MLflow URI to the docker service name
+ENV MLFLOW_TRACKING_URI=http://mlflow-server:5000
+CMD ["python", "src/models/train.py"]
+
 # Stage 2: Production stage
 FROM python:3.10-slim AS production
 
