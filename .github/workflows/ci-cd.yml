@@ -236,7 +236,14 @@ jobs:
 
       - name: Staging smoke tests
         run: |
-          python scripts/smoke_test.py --url http://localhost:8000 --retries 5 --retry-delay 5
+          curl -f http://localhost:8000/health
+          TEST_PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zx6QAAAAASUVORK5CYII="
+          HTTP_CODE=$(curl -sS -o /tmp/staging_predict_response.json -w "%{http_code}" \
+            -X POST "http://localhost:8000/predict/base64" \
+            -H "Content-Type: application/json" \
+            -d "{\"image_base64\":\"${TEST_PNG_B64}\"}")
+          cat /tmp/staging_predict_response.json
+          test "$HTTP_CODE" = "200"
 
       - name: Stop staging services
         if: always()
@@ -284,7 +291,14 @@ jobs:
 
       - name: Run post-deployment smoke tests
         run: |
-          python scripts/smoke_test.py --url http://localhost:8000 --retries 5 --retry-delay 5
+          curl -f http://localhost:8000/health
+          TEST_PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zx6QAAAAASUVORK5CYII="
+          HTTP_CODE=$(curl -sS -o /tmp/prod_predict_response.json -w "%{http_code}" \
+            -X POST "http://localhost:8000/predict/base64" \
+            -H "Content-Type: application/json" \
+            -d "{\"image_base64\":\"${TEST_PNG_B64}\"}")
+          cat /tmp/prod_predict_response.json
+          test "$HTTP_CODE" = "200"
 
       - name: Run post-deployment performance tracking
         run: |
