@@ -1,6 +1,6 @@
 # Makefile for Cats vs Dogs MLOps Project
 
-.PHONY: help install test lint format train api docker-build docker-run deploy clean
+.PHONY: help install test lint format train api docker-build docker-run deploy clean bundle
 
 # Default target
 help:
@@ -16,6 +16,7 @@ help:
 	@echo "  make deploy       - Deploy to Kubernetes"
 	@echo "  make mlflow       - Start MLflow server"
 	@echo "  make smoke-test   - Run smoke tests"
+	@echo "  make bundle       - Create final submission ZIP"
 	@echo "  make clean        - Clean generated files"
 
 # Install dependencies
@@ -111,3 +112,7 @@ clean:
 # Full pipeline: prepare -> train -> evaluate -> build
 full-pipeline: prepare-data train evaluate docker-build
 	@echo "Full pipeline completed!"
+
+# Build submission bundle
+bundle:
+	python scripts/create_submission_bundle.py

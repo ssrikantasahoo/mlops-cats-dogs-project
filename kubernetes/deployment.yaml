@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: cats-dogs-classifier
-          image: ghcr.io/your-username/cats-dogs-classifier:IMAGE_TAG
+          image: ghcr.io/REPO_NAME:IMAGE_TAG
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

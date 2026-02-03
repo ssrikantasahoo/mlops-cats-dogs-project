@@ -12,6 +12,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
 jobs:
   # ============================================
@@ -61,7 +62,8 @@ jobs:
     needs: test
 
     outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
+      image_ref: ${{ steps.refs.outputs.image_ref }}
+      image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Checkout repository
@@ -93,7 +95,12 @@ jobs:
           mkdir -p models
           touch models/model.pt
 
+      - name: Set image reference output
+        id: refs
+        run: echo "image_ref=${{ env.IMAGE_REF }}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -102,6 +109,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Save image publication evidence
+        run: |
+          mkdir -p artifacts
+          {
+            echo "registry=${{ env.REGISTRY }}"
+            echo "image=${{ env.IMAGE_NAME }}"
+            echo "image_ref=${{ env.IMAGE_REF }}"
+            echo "digest=${{ steps.build.outputs.digest }}"
+          } | tee artifacts/image_publish_evidence.txt
+
+      - name: Upload image publication evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-publication-evidence
+          path: artifacts/image_publish_evidence.txt
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -191,11 +214,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Deploy to staging
         run: |
-          echo "Deploying to staging environment..."
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          # Add deployment commands here (kubectl, docker compose, etc.)
+          echo "Deploying staging image: ${{ needs.build.outputs.image_ref }}"
+          docker pull ${{ needs.build.outputs.image_ref }}
+          export IMAGE_REF=${{ needs.build.outputs.image_ref }}
+          docker compose -f docker-compose.prod.yml up -d
+
+      - name: Staging smoke tests
+        run: |
+          python scripts/smoke_test.py --url http://localhost:8000 --retries 5 --retry-delay 5
+
+      - name: Stop staging services
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down
 
   # ============================================
   # JOB 5: Deploy to Production
@@ -204,33 +243,53 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build, integration-test]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
         with:
-          version: 'latest'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to Kubernetes
+      - name: Pull and deploy production image
         run: |
-          echo "Deploying to production..."
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "Deploying to production with image: ${{ needs.build.outputs.image_ref }}"
+          docker pull ${{ needs.build.outputs.image_ref }}
+          mkdir -p logs
+          export IMAGE_REF=${{ needs.build.outputs.image_ref }}
+          docker compose -f docker-compose.prod.yml up -d
 
-          # Update image tag in deployment
-          sed -i "s|IMAGE_TAG|${{ github.sha }}|g" kubernetes/deployment.yaml
-
-          # Apply Kubernetes manifests
-          # kubectl apply -f kubernetes/
+      - name: Wait for service health
+        run: |
+          for i in {1..20}; do
+            if curl -fsS http://localhost:8000/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Service failed health warm-up"
+          exit 1
 
       - name: Run post-deployment smoke tests
         run: |
-          echo "Running post-deployment smoke tests..."
-          # Add smoke test commands here
+          python scripts/smoke_test.py --url http://localhost:8000 --retries 5 --retry-delay 5
+
+      - name: Run post-deployment performance tracking
+        run: |
+          python scripts/monitor_performance.py --url http://localhost:8000 --requests 50 --output-dir logs/monitoring
+
+      - name: Upload deployment monitoring evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-monitoring-evidence
+          path: logs/monitoring
 
       - name: Notify on success
         if: success()
@@ -240,5 +299,9 @@ jobs:
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "Deployment failed. Rolling back..."
-          # kubectl rollout undo deployment/cats-dogs-classifier
+          echo "Deployment failed. Rolling back local deployment..."
+          docker compose -f docker-compose.prod.yml down
+
+      - name: Cleanup deployment
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down

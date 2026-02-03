@@ -1,0 +1,3 @@
+outs:
+- path: data/raw
+  desc: Raw Kaggle Cats vs Dogs dataset tracked via DVC metadata

@@ -8,6 +8,7 @@ stages:
     deps:
       - scripts/prepare_data.py
       - data/raw
+      - params.yaml
     outs:
       - data/processed
     params:
@@ -25,17 +26,13 @@ stages:
       - src/data/preprocessing.py
       - src/data/dataset.py
       - data/processed
+      - params.yaml
     outs:
       - models/model.pt
       - models/best_model.pt
-    params:
-      - train.model_type
-      - train.batch_size
-      - train.epochs
-      - train.learning_rate
-    metrics:
-      - models/metrics.json:
-          cache: false
+      - models/training_curves.png
+      - models/confusion_matrix.png
+      - models/classification_report.txt
     plots:
       - models/training_curves.png:
           cache: false

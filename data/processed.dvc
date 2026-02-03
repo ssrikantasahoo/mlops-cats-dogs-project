@@ -1,0 +1,3 @@
+outs:
+- path: data/processed
+  desc: Preprocessed 224x224 RGB train/val/test split tracked via DVC metadata

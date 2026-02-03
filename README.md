@@ -82,6 +82,17 @@ kubectl apply -f kubernetes/
 - `POST /predict` - Image classification prediction
 - `GET /metrics` - Prometheus metrics
 
+## CI/CD & Deployment
+
+- CI/CD workflow: `.github/workflows/ci-cd.yml`
+- Container registry target: `ghcr.io/<owner>/<repo>`
+- Automatic deploy:
+  - `develop` -> staging (`deploy-staging`)
+  - `main` -> production (`deploy-production`)
+- Post-deployment checks:
+  - Smoke tests: `scripts/smoke_test.py`
+  - Performance monitoring: `scripts/monitor_performance.py`
+
 ## MLflow Tracking
 ```bash
 mlflow ui --port 5000
@@ -91,6 +102,13 @@ mlflow ui --port 5000
 ```bash
 pytest tests/ -v --cov=src
 ```
+
+## Submission Packaging
+```bash
+python scripts/create_submission_bundle.py
+```
+
+See `EVIDENCE_INDEX.md` and `SUBMISSION_CHECKLIST.md` before final submission.
 
 ## Authors
 MLOps Assignment - Binary Image Classification

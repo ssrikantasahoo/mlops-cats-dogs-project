@@ -126,8 +126,7 @@ mlruns/
 mlartifacts/
 
 # DVC
-/data/*.dvc
-*.dvc.lock
+.dvc/cache/
 
 # Logs
 logs/
