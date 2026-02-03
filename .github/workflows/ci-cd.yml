@@ -236,7 +236,13 @@ jobs:
 
       - name: Staging smoke tests
         run: |
-          curl -f http://localhost:8000/health
+          for i in {1..24}; do
+            if curl -fsS http://localhost:8000/health; then
+              break
+            fi
+            sleep 5
+          done
+          curl -fsS http://localhost:8000/health || (docker compose -f docker-compose.prod.yml ps && docker logs cats-dogs-classifier --tail 200 && exit 1)
           TEST_PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zx6QAAAAASUVORK5CYII="
           HTTP_CODE=$(curl -sS -o /tmp/staging_predict_response.json -w "%{http_code}" \
             -X POST "http://localhost:8000/predict/base64" \
@@ -302,7 +308,30 @@ jobs:
 
       - name: Run post-deployment performance tracking
         run: |
-          python scripts/monitor_performance.py --url http://localhost:8000 --requests 50 --output-dir logs/monitoring
+          mkdir -p logs/monitoring
+          TEST_PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zx6QAAAAASUVORK5CYII="
+          total=50
+          ok=0
+          fail=0
+          : > logs/monitoring/perf_results.csv
+          echo "request,latency_ms,status" > logs/monitoring/perf_results.csv
+          for i in $(seq 1 $total); do
+            start=$(date +%s%3N)
+            code=$(curl -sS -o /tmp/perf_resp.json -w "%{http_code}" \
+              -X POST "http://localhost:8000/predict/base64" \
+              -H "Content-Type: application/json" \
+              -d "{\"image_base64\":\"${TEST_PNG_B64}\"}" || echo "000")
+            end=$(date +%s%3N)
+            latency=$((end-start))
+            echo "$i,$latency,$code" >> logs/monitoring/perf_results.csv
+            if [ "$code" = "200" ]; then ok=$((ok+1)); else fail=$((fail+1)); fi
+          done
+          {
+            echo "total_requests=$total"
+            echo "successful_requests=$ok"
+            echo "failed_requests=$fail"
+          } | tee logs/monitoring/summary.txt
+          test "$ok" -ge 45
 
       - name: Upload deployment monitoring evidence
         if: always()
