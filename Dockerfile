@@ -35,16 +35,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser
+# Copy application code
+# Create logs directory
+RUN useradd --create-home --shell /bin/bash appuser && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appuser /app
+
 USER appuser
 
-# Copy application code
 COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser models/ ./models/
-
-# Create logs directory
-RUN mkdir -p logs
 
 # Environment variables
 ENV PYTHONPATH=/app
