@@ -3,6 +3,9 @@
 ## Project Overview
 End-to-end MLOps pipeline for binary image classification (Cats vs Dogs) for a pet adoption platform.
 
+## Demo
+![Project demo](videos/recording.gif)
+
 ## Project Structure
 ```
 mlops-cats-dogs-project/
