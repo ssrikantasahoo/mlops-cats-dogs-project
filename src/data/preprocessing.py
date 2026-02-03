@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 IMAGE_SIZE = 224
 MEAN = [0.485, 0.456, 0.406]  # ImageNet normalization
 STD = [0.229, 0.224, 0.225]
+MEAN_NP = np.array(MEAN, dtype=np.float32)
+STD_NP = np.array(STD, dtype=np.float32)
 
 
 def preprocess_image(
@@ -54,7 +56,9 @@ def preprocess_image(
 
     # Normalize if requested
     if normalize:
-        image_array = (image_array - np.array(MEAN)) / np.array(STD)
+        image_array = (image_array - MEAN_NP) / STD_NP
+
+    image_array = image_array.astype(np.float32, copy=False)
 
     return image_array
 

@@ -90,6 +90,12 @@ app_metrics = {
 }
 
 
+def ensure_model_ready() -> None:
+    """Lazy-load model for contexts where lifespan hooks are not executed."""
+    if model is None and not load_model():
+        raise HTTPException(status_code=500, detail="Model is not available")
+
+
 class PredictionRequest(BaseModel):
     """Request model for base64 encoded image."""
     image_base64: str
@@ -248,6 +254,8 @@ async def predict(file: UploadFile = File(...)):
     app_metrics['total_requests'] += 1
 
     try:
+        ensure_model_ready()
+
         # Validate file type
         if not file.content_type.startswith('image/'):
             REQUEST_COUNT.labels(endpoint='predict', status='error').inc()
@@ -327,6 +335,8 @@ async def predict_base64(request: PredictionRequest):
     app_metrics['total_requests'] += 1
 
     try:
+        ensure_model_ready()
+
         # Decode base64 image
         image_data = base64.b64decode(request.image_base64)
         image = Image.open(io.BytesIO(image_data))
