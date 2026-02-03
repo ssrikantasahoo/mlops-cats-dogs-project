@@ -189,29 +189,16 @@ jobs:
         run: |
           # Test health endpoint
           curl -f http://localhost:8000/health
-
-          # Test prediction with a sample image
-          python -c "
-          from PIL import Image
-          import io
-          import requests
-
-          # Create test image
-          img = Image.new('RGB', (224, 224), color='red')
-          buffer = io.BytesIO()
-          img.save(buffer, format='JPEG')
-          buffer.seek(0)
-
-          # Send prediction request
-          response = requests.post(
-              'http://localhost:8000/predict',
-              files={'file': ('test.jpg', buffer.getvalue(), 'image/jpeg')}
-          )
-          print(f'Status: {response.status_code}')
-          print(f'Response: {response.json()}')
-          assert response.status_code == 200
-          print('Smoke tests passed!')
-          "
+          
+          # Test base64 prediction endpoint without extra runner dependencies
+          TEST_PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zx6QAAAAASUVORK5CYII="
+          HTTP_CODE=$(curl -sS -o /tmp/predict_response.json -w "%{http_code}" \
+            -X POST "http://localhost:8000/predict/base64" \
+            -H "Content-Type: application/json" \
+            -d "{\"image_base64\":\"${TEST_PNG_B64}\"}")
+          cat /tmp/predict_response.json
+          test "$HTTP_CODE" = "200"
+          echo "Smoke tests passed!"
 
       - name: Stop services
         if: always()
