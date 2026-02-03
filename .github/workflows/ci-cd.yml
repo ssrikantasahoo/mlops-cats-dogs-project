@@ -110,7 +110,9 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ env.IMAGE_REF }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
           provenance: false
