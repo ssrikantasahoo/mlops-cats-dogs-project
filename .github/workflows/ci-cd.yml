@@ -15,9 +15,9 @@ permissions:
   security-events: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  IMAGE_REF: ghcr.io/${{ github.repository }}:${{ github.sha }}
+  REGISTRY: docker.io
+  IMAGE_NAME: ssrikantasahoo0907/mlops-cats-dogs-project
+  IMAGE_REF: docker.io/ssrikantasahoo0907/mlops-cats-dogs-project:${{ github.sha }}
 
 jobs:
   # ============================================
@@ -81,8 +81,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ssrikantasahoo0907
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
@@ -156,8 +156,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ssrikantasahoo0907
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create dummy model
         run: |
@@ -223,8 +223,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ssrikantasahoo0907
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Deploy to staging
         run: |
@@ -259,8 +259,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ssrikantasahoo0907
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Pull and deploy production image
         run: |
