@@ -1,0 +1,21 @@
+# Keep Docker build context small
+.git
+.github
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+data
+mlruns
+notebooks
+tests
+logs
+
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+*.ipynb
+*.log
