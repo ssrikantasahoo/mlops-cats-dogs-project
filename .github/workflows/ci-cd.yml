@@ -170,11 +170,20 @@ jobs:
       - name: Start services with Docker Compose
         run: |
           docker compose up -d cats-dogs-api
-          sleep 30
 
       - name: Health check
         run: |
-          curl -f http://localhost:8000/health || exit 1
+          for i in {1..24}; do
+            if curl -fsS http://localhost:8000/health; then
+              echo "API health check passed"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API failed to become healthy within 120 seconds"
+          docker compose ps
+          docker logs cats-dogs-classifier --tail 200 || true
+          exit 1
 
       - name: Run smoke tests
         run: |
